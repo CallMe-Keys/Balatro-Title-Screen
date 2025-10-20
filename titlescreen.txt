@@ -1,0 +1,87 @@
+local mod = SMODS.current_mod
+config = SMODS.current_mod.config
+keys_enabled = copy_table(config)         --change "keys" to your choice eg. "blank_enabled"
+
+
+local function config_matching()
+	for k, v in pairs(keys_enabled) do      --make sure this variable is the same as line 3
+		if v ~= config[k] then
+			return false
+		end
+	end
+	return true
+end
+
+function G.FUNCS.keys_restart()                                          --change "keys" to your choice eg. "blank_restart"
+	if config_matching() then
+		SMODS.full_restart = 0
+	else
+		SMODS.full_restart = 1
+	end
+end
+
+--config tab
+SMODS.current_mod.config_tab = function()
+  keys_nodes = {{n=G.UIT.R, config={align = "cm"}, nodes={          --change "keys" to your choice eg. "blank_nodes"
+    {n=G.UIT.O, config={object = DynaText({string = "Options:", colours = {G.C.WHITE}, shadow = true, scale = 0.4})}},
+  }},create_toggle({label = "Custom Title Screen (Requires Restart)", ref_table = config, ref_value = "title", callback = G.FUNCS.keys_restart,   --make sure this variable is the same as line 15
+})
+}
+  return {
+    n = G.UIT.ROOT,
+    config = {
+        emboss = 0.05,
+        minh = 6,
+        r = 0.1,
+        minw = 10,
+        align = "cm",
+        padding = 0.2,
+        colour = G.C.BLACK
+    },
+    nodes = keys_nodes                         --make sure this variable is the same as line 25
+  }  
+end
+
+--title screen
+if config.title and not next(SMODS.find_mod("Cryptid")) then             --this will not take effect with crytpid, cryptid's title screen will override this one. to change this replace it with "if config.title then"
+  SMODS.Atlas({
+    key = "balatro",
+    path = "balatro.png",                --make sure this is the name of your title screen png in assets folder, if not change the file name to this
+    px = 333,
+    py = 216,
+    prefix_config = { key = false }
+  })
+
+  function add_card_to_title(use_key)
+    local newcard = SMODS.create_card({
+        set = "Joker",
+        area = G.title_top,
+        key = use_key,
+        no_edition = true
+    })
+    -- recenter the title
+    newcard:start_materialize({ G.C.WHITE, G.C.SECONDARY_SET.Personality }, true, 2.5)
+    G.title_top:emplace(newcard)
+    -- make the card look the same way as the title screen Ace of Spades
+    newcard.T.scale = 1.32
+  newcard.no_ui = true
+end 
+
+local main_menu_ref = Game.main_menu
+Game.main_menu = function(change_context)
+    local ret = main_menu_ref(change_context)
+    add_card_to_title("j_oops")                                      --replace j_oops with the joker or card of choice, for some reason consumables have weird purple shit, not sure why
+    G.title_top.T.w = G.title_top.T.w * 1.7675 * 1.2
+    G.title_top.T.x = G.title_top.T.x - 0.8 * 1.8
+    G.SPLASH_BACK:define_draw_steps({ {
+        shader = 'splash',
+        send = {
+            { name = 'time',       ref_table = G.TIMERS, ref_value = 'REAL_SHADER' },
+            { name = 'vort_speed', val = 0.4 },
+            { name = 'colour_1',   ref_table = G.C,      ref_value = 'RED' },               --"RED" and "BLUE" are the colors of the background, you can replace either with another color eg. WHITE
+            { name = 'colour_2',   ref_table = G.C,      ref_value = 'BLUE' },
+        }
+    } }) 
+    return ret
+end
+end
